@@ -157,6 +157,27 @@ kbd {
   color: #fbbf24;
 }
 
+.notice-error {
+  max-width: 420px;
+  padding: 0.8rem 1rem;
+  color: var(--text);
+  line-height: 1.6;
+  background: rgba(251, 113, 133, 0.12);
+  border: 1px solid var(--err);
+  border-radius: 10px;
+}
+
+.notice-error strong {
+  color: var(--err);
+}
+
+.notice code {
+  font-family: var(--mono);
+  background: #1d2147;
+  padding: 0 0.3rem;
+  border-radius: 4px;
+}
+
 /* ---------- 게임 화면 ---------- */
 .screen-game {
   width: 100%;
