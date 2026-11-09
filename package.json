@@ -1,0 +1,14 @@
+{
+  "name": "superbase-tetris",
+  "version": "1.0.0",
+  "private": true,
+  "description": "STACKFALL - 웹 기반 낙하형 블록 퍼즐 게임 (Supabase 랭킹/피드백)",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test \"tests/*.test.mjs\""
+  }
+}

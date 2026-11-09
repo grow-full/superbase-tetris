@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>STACKFALL — 블록 퍼즐</title>
+    <meta name="description" content="브라우저에서 바로 즐기는 낙하형 블록 퍼즐 게임" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="config.js"></script>
+    <script type="module" src="src/main.js"></script>
+  </head>
+  <body>
+    <!-- 메인 화면 -->
+    <section id="screen-menu" class="screen screen-menu" aria-labelledby="title">
+      <h1 id="title" class="logo">STACK<span>FALL</span></h1>
+      <p class="tagline">쌓고, 지우고, 기록을 남기세요</p>
+      <nav class="menu">
+        <button class="btn btn-primary" id="btn-start">게임 시작</button>
+        <button class="btn" id="btn-menu-rank">랭킹</button>
+        <button class="btn" id="btn-menu-feedback">피드백 남기기</button>
+        <button class="btn" id="btn-menu-help">조작법</button>
+        <button class="btn" id="btn-menu-settings">사운드 설정</button>
+      </nav>
+      <p class="best">내 최고 점수 <strong id="menu-best">0</strong></p>
+      <p class="notice" id="offline-notice" hidden>
+        온라인 기능(랭킹·피드백)이 설정되지 않았습니다. 게임은 그대로 즐길 수 있어요.
+      </p>
+    </section>
+
+    <!-- 게임 화면 -->
+    <section id="screen-game" class="screen screen-game" hidden>
+      <div class="game-layout">
+        <aside class="panel panel-left">
+          <div class="box">
+            <h2 class="box-title">HOLD</h2>
+            <canvas id="hold-canvas" class="preview" aria-label="보관한 블록"></canvas>
+          </div>
+          <div class="box keys-hint" aria-hidden="true">
+            <p><kbd>←</kbd><kbd>→</kbd> 이동</p>
+            <p><kbd>↑</kbd><kbd>X</kbd> 회전</p>
+            <p><kbd>Z</kbd> 반대 회전</p>
+            <p><kbd>↓</kbd> 소프트 드롭</p>
+            <p><kbd>Space</kbd> 하드 드롭</p>
+            <p><kbd>C</kbd> 홀드</p>
+            <p><kbd>P</kbd> 일시정지</p>
+          </div>
+        </aside>
+
+        <div class="board-wrap">
+          <canvas id="board-canvas" class="board" aria-label="게임 보드"></canvas>
+          <div id="pause-overlay" class="overlay" hidden>
+            <p class="overlay-title">일시정지</p>
+            <button class="btn btn-primary" id="btn-resume">계속하기</button>
+            <button class="btn" id="btn-restart">다시 시작</button>
+            <button class="btn" id="btn-pause-settings">사운드 설정</button>
+            <button class="btn" id="btn-quit">메인으로</button>
+          </div>
+        </div>
+
+        <aside class="panel panel-right">
+          <div class="box">
+            <h2 class="box-title">NEXT</h2>
+            <canvas class="preview next-canvas" aria-label="다음 블록 1"></canvas>
+            <canvas class="preview preview-sm next-canvas" aria-label="다음 블록 2"></canvas>
+            <canvas class="preview preview-sm next-canvas" aria-label="다음 블록 3"></canvas>
+          </div>
+          <div class="box stats">
+            <div class="stat"><span>SCORE</span><strong id="stat-score">0</strong></div>
+            <div class="stat"><span>BEST</span><strong id="stat-best">0</strong></div>
+            <div class="stat"><span>LEVEL</span><strong id="stat-level">1</strong></div>
+            <div class="stat"><span>LINES</span><strong id="stat-lines">0</strong></div>
+            <div class="stat"><span>TIME</span><strong id="stat-time">0:00</strong></div>
+          </div>
+          <div class="box game-buttons">
+            <button class="btn btn-sm" id="btn-pause" aria-label="일시정지">⏸ 일시정지</button>
+            <button class="btn btn-sm" id="btn-mute" aria-label="음소거 전환">🔊 소리</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- 게임 오버 -->
+    <dialog id="dlg-gameover" class="dialog" aria-labelledby="go-title">
+      <h2 id="go-title" class="dialog-title">GAME OVER</h2>
+      <div class="result">
+        <div class="result-main"><span>점수</span><strong id="go-score">0</strong></div>
+        <div class="result-sub">
+          <span>레벨 <b id="go-level">1</b></span>
+          <span>줄 <b id="go-lines">0</b></span>
+          <span>시간 <b id="go-time">0:00</b></span>
+        </div>
+        <p class="new-best" id="go-newbest" hidden>🎉 내 최고 기록!</p>
+      </div>
+
+      <form id="form-score" class="form" novalidate>
+        <label for="input-nickname">닉네임 (2~12자)</label>
+        <div class="row">
+          <input id="input-nickname" name="nickname" maxlength="12" autocomplete="nickname" required />
+          <button class="btn btn-primary" type="submit" id="btn-save-score">점수 저장</button>
+        </div>
+        <p class="form-msg" id="score-msg" role="status"></p>
+      </form>
+
+      <div class="go-board" id="go-board" hidden>
+        <h3 class="sub-title">TOP 10</h3>
+        <ol class="leaderboard" id="go-leaderboard"></ol>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="btn btn-primary" id="btn-retry">다시 하기</button>
+        <button class="btn" id="btn-go-feedback">피드백 남기기</button>
+        <button class="btn" id="btn-go-menu">메인으로</button>
+      </div>
+    </dialog>
+
+    <!-- 랭킹 -->
+    <dialog id="dlg-rank" class="dialog" aria-labelledby="rank-title">
+      <h2 id="rank-title" class="dialog-title">랭킹</h2>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-period="all" aria-selected="true">전체</button>
+        <button class="tab" role="tab" data-period="week" aria-selected="false">이번 주</button>
+        <button class="tab" role="tab" data-period="today" aria-selected="false">오늘</button>
+      </div>
+      <ol class="leaderboard" id="rank-list"></ol>
+      <p class="form-msg" id="rank-msg" role="status"></p>
+      <div class="dialog-actions">
+        <button class="btn" data-close>닫기</button>
+      </div>
+    </dialog>
+
+    <!-- 피드백 -->
+    <dialog id="dlg-feedback" class="dialog" aria-labelledby="fb-title">
+      <h2 id="fb-title" class="dialog-title">피드백 남기기</h2>
+      <form id="form-feedback" class="form" novalidate>
+        <label for="fb-nickname">닉네임 (선택)</label>
+        <input id="fb-nickname" name="nickname" maxlength="12" autocomplete="nickname" />
+
+        <label for="fb-category">종류</label>
+        <select id="fb-category" name="category">
+          <option value="idea">개선 제안</option>
+          <option value="bug">버그 신고</option>
+          <option value="praise">칭찬</option>
+          <option value="etc">기타</option>
+        </select>
+
+        <fieldset class="rating">
+          <legend>만족도</legend>
+          <div class="stars">
+            <input type="radio" id="star5" name="rating" value="5" checked /><label for="star5" title="5점">★</label>
+            <input type="radio" id="star4" name="rating" value="4" /><label for="star4" title="4점">★</label>
+            <input type="radio" id="star3" name="rating" value="3" /><label for="star3" title="3점">★</label>
+            <input type="radio" id="star2" name="rating" value="2" /><label for="star2" title="2점">★</label>
+            <input type="radio" id="star1" name="rating" value="1" /><label for="star1" title="1점">★</label>
+          </div>
+        </fieldset>
+
+        <label for="fb-content">내용</label>
+        <textarea id="fb-content" name="content" rows="5" maxlength="500" required
+          placeholder="좋았던 점, 불편했던 점, 버그 등을 자유롭게 적어 주세요."></textarea>
+        <p class="counter"><span id="fb-count">0</span> / 500</p>
+
+        <p class="form-msg" id="fb-msg" role="status"></p>
+        <div class="dialog-actions">
+          <button class="btn btn-primary" type="submit" id="btn-fb-submit">보내기</button>
+          <button class="btn" type="button" data-close>닫기</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- 조작법 -->
+    <dialog id="dlg-help" class="dialog" aria-labelledby="help-title">
+      <h2 id="help-title" class="dialog-title">조작법</h2>
+      <table class="help-table">
+        <tbody>
+          <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>좌우 이동 (누르고 있으면 계속 이동)</td></tr>
+          <tr><td><kbd>↓</kbd></td><td>소프트 드롭 (1칸당 1점)</td></tr>
+          <tr><td><kbd>Space</kbd></td><td>하드 드롭 (1칸당 2점)</td></tr>
+          <tr><td><kbd>↑</kbd> <kbd>X</kbd></td><td>시계 방향 회전</td></tr>
+          <tr><td><kbd>Z</kbd> <kbd>Ctrl</kbd></td><td>반시계 방향 회전</td></tr>
+          <tr><td><kbd>C</kbd> <kbd>Shift</kbd></td><td>홀드 (블록 보관/교체)</td></tr>
+          <tr><td><kbd>P</kbd> <kbd>Esc</kbd></td><td>일시정지</td></tr>
+          <tr><td><kbd>M</kbd></td><td>음소거</td></tr>
+        </tbody>
+      </table>
+      <h3 class="sub-title">점수</h3>
+      <p class="help-text">1줄 100 · 2줄 300 · 3줄 500 · 4줄 800 (× 레벨). 10줄마다 레벨이 오르고 속도가 빨라집니다.</p>
+      <div class="dialog-actions">
+        <button class="btn" data-close>닫기</button>
+      </div>
+    </dialog>
+
+    <!-- 사운드 설정 -->
+    <dialog id="dlg-settings" class="dialog" aria-labelledby="settings-title">
+      <h2 id="settings-title" class="dialog-title">사운드 설정</h2>
+      <div class="form">
+        <label for="vol-bgm">배경음 <span id="vol-bgm-val"></span></label>
+        <input type="range" id="vol-bgm" min="0" max="100" step="5" />
+        <label for="vol-sfx">효과음 <span id="vol-sfx-val"></span></label>
+        <input type="range" id="vol-sfx" min="0" max="100" step="5" />
+        <label class="check"><input type="checkbox" id="chk-mute" /> 전체 음소거</label>
+      </div>
+      <div class="dialog-actions">
+        <button class="btn" data-close>닫기</button>
+      </div>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>
